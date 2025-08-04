@@ -67,15 +67,13 @@ async def request_ridealong(interaction: discord.Interaction):
             f"⏳ You must wait **{minutes}m {seconds}s** before requesting another ride-along.",
             ephemeral=True
         )
-        return  # <--- Add this to prevent further execution
+        return
 
-    # Save new timestamp
     cooldowns[requester.id] = now
-
 
     class AcceptButton(discord.ui.View):
         def __init__(self):
-            super().__init__()
+            super().__init__(timeout=None)  # Optional: disable timeout
 
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.green)
         async def accept(self, interaction_button: discord.Interaction, button: discord.ui.Button):
@@ -91,7 +89,7 @@ async def request_ridealong(interaction: discord.Interaction):
                     "<@&1386682330537787452> Please wait 25~30 seconds per mod call."
                 ),
                 color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
+                timestamp=datetime.datetime.now(datetime.UTC)  # ⏰ Fixed warning here too
             )
             notify_embed.set_image(url=RIDEALONG_IMAGE_URL)
 
@@ -107,26 +105,24 @@ async def request_ridealong(interaction: discord.Interaction):
             "Pings: <@&1386679589782421597> <@&1386686213527961641> <@&1386679658271084635>"
         ),
         color=discord.Color.blue(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.datetime.now(datetime.UTC)
     )
     request_embed.set_image(url=RIDEALONG_IMAGE_URL)
 
-    request_channel = bot.get_channel(REQUEST_CHANNEL_ID)
-    if request_channel:
-        await request_channel.send(embed=request_embed, view=AcceptButton())
+    try:
+        request_channel = bot.get_channel(REQUEST_CHANNEL_ID)
+        if request_channel:
+            await request_channel.send(embed=request_embed, view=AcceptButton())
 
-    await interaction.response.send_message("📨 Your ride-along request has been sent!", ephemeral=True)
+        await interaction.response.send_message(
+            "📨 Your ride-along request has been sent!", ephemeral=True
+        )
+    except Exception as e:
+        print(f"❌ Failed to send request: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("⚠️ Something went wrong.", ephemeral=True)
 
-@bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error):
-    if isinstance(error, app_commands.errors.MissingRole):
-        await interaction.response.send_message(
-            "🚫 You do not have permission to use this command.", ephemeral=True
-        )
-    else:
-        await interaction.response.send_message(
-            f"⚠️ Unexpected error:\n```{error}```", ephemeral=True
-        )
+
 
 keep_alive()
 bot.run(TOKEN)
