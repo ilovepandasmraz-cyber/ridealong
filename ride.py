@@ -128,8 +128,5 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             f"⚠️ Unexpected error:\n```{error}```", ephemeral=True
         )
 
-from keep_alive import keep_alive
-
 keep_alive()
-
 bot.run(TOKEN)
